@@ -32,9 +32,10 @@ static size_t readfile(char** buf, FILE* fh)
     return sz;
 }
 
-static void prnvals(tini_t* t)
+static void prnvals(tiniparser_t* t)
 {
-    printf("in '%s': (%zu)\"%.*s\" = (%zu)\"%.*s\"\n", t->section, t->klength, (int)(t->klength), t->key, t->vlength, (int)(t->vlength), t->value);
+    /* NB. don't use %zu, because msvcrt will choke on it - as in, crash. seriously. */
+    printf("in '%s': (%d)\"%.*s\" = (%d)\"%.*s\"\n", t->section, t->klength, (int)(t->klength), t->key, t->vlength, (int)(t->vlength), t->value);
 }
 
 int main(int argc, char* argv[])
@@ -44,8 +45,8 @@ int main(int argc, char* argv[])
     char* data;
     const char* file;
     FILE* fh;
-    tini_t t;
-    tini_init(&t);
+    tiniparser_t t;
+    tiniparser_init(&t);
     if(argc > 1)
     {
         for(i=1; i<argc; i++)
@@ -58,7 +59,7 @@ int main(int argc, char* argv[])
                 return 1;
             }
             sz = readfile(&data, fh);
-            while(tini_each(&t, data, sz))
+            while(tiniparser_each(&t, data, sz))
             {
                 prnvals(&t);
             }

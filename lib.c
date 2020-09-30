@@ -6,36 +6,6 @@
 #include <ctype.h>
 #include "tini.h"
 
-static void nul_section(tini_t* t)
-{
-    memset(t->section, 0, TINI_MAX_SECTION);
-    t->slength = 0;
-}
-
-static void nul_key(tini_t* t)
-{
-    memset(t->key, 0, TINI_MAX_KEY);
-    t->klength = 0;
-}
-
-static void nul_value(tini_t* t)
-{
-    memset(t->value, 0, TINI_MAX_VALUE);
-    t->vlength = 0;
-}
-
-static void nul_all(tini_t* t)
-{
-    nul_section(t);
-    nul_key(t);
-    nul_value(t);
-}
-
-static void set_default(tini_t* t)
-{
-    strcpy(t->section, "main");
-    t->slength = 4;
-}
 
 /*
 * trim spaces front and back of a string
@@ -87,6 +57,7 @@ static size_t trimspaces(char *out, const char* str, size_t len)
     out[nlen] = 0;
     return nlen;
 }
+
 
 /*
 * iterate a string line-wise
@@ -159,15 +130,47 @@ static int spos(const char* str, size_t slen, int findme)
     return -1;
 }
 
-void tini_init(tini_t* t)
+
+static void nul_section(tiniparser_t* t)
+{
+    memset(t->section, 0, TINI_MAX_SECTION);
+    t->slength = 0;
+}
+
+static void nul_key(tiniparser_t* t)
+{
+    memset(t->key, 0, TINI_MAX_KEY);
+    t->klength = 0;
+}
+
+static void nul_value(tiniparser_t* t)
+{
+    memset(t->value, 0, TINI_MAX_VALUE);
+    t->vlength = 0;
+}
+
+static void nul_all(tiniparser_t* t)
+{
+    nul_section(t);
+    nul_key(t);
+    nul_value(t);
+}
+
+void tiniparser_default_section(tiniparser_t* t, const char* str)
+{
+    strcpy(t->section, str);
+    t->slength = strlen(str);
+}
+
+void tiniparser_init(tiniparser_t* t)
 {
     nul_all(t);
-    set_default(t);
+    tiniparser_default_section(t, "main");
     t->iter = 0;
     t->lineno = 0;
 }
 
-bool tini_each(tini_t* t, const char* str, size_t slen)
+bool tiniparser_each(tiniparser_t* t, const char* str, size_t slen)
 {
     int pos;
     size_t llen;

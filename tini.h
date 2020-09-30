@@ -4,8 +4,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-typedef struct tini_tag_t tini_t;
-typedef bool(*tini_callback_t)(tini_t*, void*);
+typedef struct tiniparser_tag_t tiniparser_t;
 enum
 {
     TINI_MAX_SECTION = 512,
@@ -15,7 +14,7 @@ enum
 
 };
 
-struct tini_tag_t
+struct tiniparser_tag_t
 {
     char section[TINI_MAX_SECTION + 1];
     size_t slength;
@@ -30,5 +29,7 @@ struct tini_tag_t
     size_t lineno;
 };
 
-extern void tini_init(tini_t* t);
-extern bool tini_each(tini_t* t, const char* str, size_t slen);
+
+extern void tiniparser_init(tiniparser_t* t);
+extern void tiniparser_default_section(tiniparser_t* t, const char* str);
+extern bool tiniparser_each(tiniparser_t* t, const char* str, size_t slen);

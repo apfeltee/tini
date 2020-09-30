@@ -8,9 +8,9 @@ Usage is extremely straight-forward:
 ....
 #include "tini.h"
 ....
-tini_t t;
-tini_init(&t);
-while(tini_parse_each(&t, inputstring, inputlen))
+tiniparser_t t;
+tiniparser_init(&t);
+while(tiniparser_each(&t, inputstring, inputlen))
 {
     /**
     * t->section contains the current section (defaults to "main"), t->slength its length,

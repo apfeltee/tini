@@ -201,11 +201,13 @@ bool tini_parse_string(const char* str, size_t slen, tini_callback_t cb, void* u
     set_default(&t);
     while(true)
     {
+        memset(line, 0, TINI_MAX_LINE);
         if(eachline(line, TINI_MAX_LINE, &llen, &iter, &lco, str, slen))
         {
             llen = trimspaces(line, line, llen);
             if((line[0] == '[') && (line[llen - 1] == ']'))
             {
+                memset(t.section, 0, TINI_MAX_SECTION);
                 memcpy(t.section, line + 1, llen - 2);
                 t.slength = llen - 2;
                 #if 0

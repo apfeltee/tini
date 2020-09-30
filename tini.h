@@ -25,8 +25,10 @@ struct tini_tag_t
 
     char value[TINI_MAX_VALUE + 1];
     size_t vlength;
+
+    size_t iter;
+    size_t lineno;
 };
 
-extern bool tini_parse_string(const char* str, size_t slen, tini_callback_t cb, void* up);
-extern bool tini_parse_file(const char* filename, tini_callback_t cb, void* up);
-
+extern void tini_init(tini_t* t);
+extern bool tini_each(tini_t* t, const char* str, size_t slen);

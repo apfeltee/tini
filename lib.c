@@ -38,34 +38,6 @@ static void set_default(tini_t* t)
 }
 
 /*
-* read a whole file into memory. don't use with very large files,
-* as it obviously will be stored in RAM; lest you have RAM to spare,
-* in which case, knock yourself out.
-* this was born out of lazyness, and it is, in fact, not
-* a good way to read a whole (big) file (which *should* be read chunk-wise).
-* tl;dr use it for small files only.
-*
-* $buf: where the data will be stored. will be malloc()'d, so also
-*       needs to be free()'d.
-* $fh: file handle.
-*
-* returns the amount of bytes read.
-*/
-static size_t readfile(char** buf, FILE* fh)
-{
-    size_t sz;
-    fseek(fh, 0, SEEK_END);
-    sz = ftell(fh);
-    fseek(fh, 0, SEEK_SET);
-    *buf = (char*)malloc(sz + 1);
-    /* should check rt val... */
-    fread(*buf, sizeof(char), sz, fh);
-    fclose(fh);
-    (*buf)[sz] = 0;
-    return sz;
-}
-
-/*
 * trim spaces front and back of a string
 *
 * $out: where the "new" string is stored - it must be at least a big as $len
@@ -187,58 +159,56 @@ static int spos(const char* str, size_t slen, int findme)
     return -1;
 }
 
-bool tini_parse_string(const char* str, size_t slen, tini_callback_t cb, void* up)
+void tini_init(tini_t* t)
+{
+    nul_all(t);
+    set_default(t);
+    t->iter = 0;
+    t->lineno = 0;
+}
+
+bool tini_each(tini_t* t, const char* str, size_t slen)
 {
     int pos;
-    size_t iter;
     size_t llen;
-    size_t lco;
-    tini_t t;
     char line[TINI_MAX_LINE + 1];
-    iter = 0;
-    lco = 0;
-    nul_all(&t);
-    set_default(&t);
     while(true)
     {
         memset(line, 0, TINI_MAX_LINE);
-        if(eachline(line, TINI_MAX_LINE, &llen, &iter, &lco, str, slen))
+        if(eachline(line, TINI_MAX_LINE, &llen, &t->iter, &t->lineno, str, slen))
         {
             llen = trimspaces(line, line, llen);
             if((line[0] == '[') && (line[llen - 1] == ']'))
             {
-                memset(t.section, 0, TINI_MAX_SECTION);
-                memcpy(t.section, line + 1, llen - 2);
-                t.slength = llen - 2;
+                memset(t->section, 0, TINI_MAX_SECTION);
+                memcpy(t->section, line + 1, llen - 2);
+                t->slength = llen - 2;
                 #if 0
-                fprintf(stderr, "t.section=%.*s\n", t.slength, t.section);
+                fprintf(stderr, "t.section=%.*s\n", t->slength, t->section);
                 #endif
             }
             else
             {
                 if((pos = spos(line, llen, '=')) != -1)
                 {
-                    nul_key(&t);
-                    nul_value(&t);
-                    memcpy(t.key, line, pos);
-                    t.klength = trimspaces(t.key, t.key, pos);
-                    memcpy(t.value, line + (pos + 1), (llen - pos) - 1);
-                    t.vlength = trimspaces(t.value, t.value, (llen - pos) + 1);
+                    nul_key(t);
+                    nul_value(t);
+                    memcpy(t->key, line, pos);
+                    t->klength = trimspaces(t->key, t->key, pos);
+                    memcpy(t->value, line + (pos + 1), (llen - pos) - 1);
+                    t->vlength = trimspaces(t->value, t->value, (llen - pos) + 1);
                     #if 0
                     fprintf(stderr, "in \"%.*s\": key=\"%.*s\" value=\"%.*s\"\n",
-                        t.slength, t.section,
-                        t.klength, t.key,
-                        t.vlength, t.value
+                        t->slength, t->section,
+                        t->klength, t->key,
+                        t->vlength, t->value
                     );
                     #endif
-                    if(cb(&t, up) == false)
-                    {
-                        break;
-                    }
+                    return true;
                 }
                 else
                 {
-                    fprintf(stderr, "error: bad key<->value line near line %ld\n", lco);
+                    fprintf(stderr, "error: bad key<->value line near line %zu\n", t->lineno);
                     return false;
                 }
             }
@@ -248,23 +218,5 @@ bool tini_parse_string(const char* str, size_t slen, tini_callback_t cb, void* u
             break;
         }
     }
-    return true;
+    return false;
 }
-
-bool tini_parse_file(const char* filename, tini_callback_t cb, void* up)
-{
-    bool rt;
-    size_t sz;
-    char* buf;
-    FILE* fh;
-    if((fh = fopen(filename, "rb")) == NULL)
-    {
-        return false;
-    }
-    sz = readfile(&buf, fh);
-    fclose(fh);
-    rt = tini_parse_string(buf, sz, cb, up);
-    free(buf);
-    return rt;
-}
-

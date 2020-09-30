@@ -178,7 +178,12 @@ bool tini_each(tini_t* t, const char* str, size_t slen)
         if(eachline(line, TINI_MAX_LINE, &llen, &t->iter, &t->lineno, str, slen))
         {
             llen = trimspaces(line, line, llen);
-            if((line[0] == '[') && (line[llen - 1] == ']'))
+            if((line[0] == '#') || (line[0] == ';'))
+            {
+                /* comment. move along */
+                continue;
+            }
+            else if((line[0] == '[') && (line[llen - 1] == ']'))
             {
                 memset(t->section, 0, TINI_MAX_SECTION);
                 memcpy(t->section, line + 1, llen - 2);

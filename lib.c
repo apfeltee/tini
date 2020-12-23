@@ -94,7 +94,6 @@ static bool eachline(char* dest, size_t mlen, size_t* llen, size_t* iter, size_t
         if((c == '\r') && (str[(*iter) + 1] == '\n'))
         {
              *iter += 1;
-            //continue;
         }
         else
         {

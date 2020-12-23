@@ -35,7 +35,14 @@ static size_t readfile(char** buf, FILE* fh)
 static void prnvals(tiniparser_t* t)
 {
     /* NB. don't use %zu, because msvcrt will choke on it - as in, crash. seriously. */
-    printf("in '%s': (%d)\"%.*s\" = (%d)\"%.*s\"\n", t->section, t->klength, (int)(t->klength), t->key, t->vlength, (int)(t->vlength), t->value);
+    printf("in '%s': (%d)\"%.*s\" = (%d)\"%.*s\"\n",
+        t->section,
+        t->klength,
+        (int)(t->klength),
+        t->key, t->vlength,
+        (int)(t->vlength),
+        t->value
+    );
 }
 
 int main(int argc, char* argv[])
@@ -52,7 +59,6 @@ int main(int argc, char* argv[])
         for(i=1; i<argc; i++)
         {
             file = argv[i];
-            
             if((fh = fopen(file, "rb")) == NULL)
             {
                 fprintf(stderr, "failed to open file '%s'\n", file);

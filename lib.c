@@ -91,24 +91,28 @@ static bool eachline(char* dest, size_t mlen, size_t* llen, size_t* iter, size_t
     while(*iter < slen)
     {
         c = str[*iter];
-        if(c == '\r')
+        if((c == '\r') && (str[(*iter) + 1] == '\n'))
         {
-            *iter += 1;
-        }
-        else if(c == '\n')
-        {
-            *lco += 1;
-            if(*llen > 0)
-            {
-                return true;
-            }
+             *iter += 1;
+            //continue;
         }
         else
         {
-            dest[*llen] = c;
-            *llen += 1;
+            if(c == '\n')
+            {
+                *lco += 1;
+                if(*llen > 0)
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                dest[*llen] = c;
+                *llen += 1;
+            }
+            *iter += 1;
         }
-        *iter += 1;
     }
     return false;
 }
@@ -130,6 +134,33 @@ static int spos(const char* str, size_t slen, int findme)
     return -1;
 }
 
+static bool casecmp_s(const char* stra, size_t alen, const char* strb, size_t blen)
+{
+    int ca;
+    int cb;
+    size_t i;
+    if(alen != blen)
+    {
+        return false;
+    }
+    for(i=0; i<alen; i++)
+    {
+        ca = stra[i];
+        cb = strb[i];
+        if(toupper(ca) != toupper(cb))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+#if 0
+static bool casecmp(const char* stra, const char* strb)
+{
+    return casecmp_s(stra, strlen(stra), strb, strlen(strb));
+}
+#endif
 
 static void nul_section(tiniparser_t* t)
 {
@@ -178,6 +209,12 @@ bool tiniparser_each(tiniparser_t* t, const char* str, size_t slen)
     while(true)
     {
         memset(line, 0, TINI_MAX_LINE);
+        /*
+        * eachline() will only ever read as much as TINI_MAX_LINE ...
+        * so if the line is larger than TINI_MAX_LINE, then
+        * a) are you sure you understood what ini files are used for?
+        * b) it won't affect parsing (at least until i implement quotes)
+        */
         if(eachline(line, TINI_MAX_LINE, &llen, &t->iter, &t->lineno, str, slen))
         {
             llen = trimspaces(line, line, llen);
@@ -188,30 +225,35 @@ bool tiniparser_each(tiniparser_t* t, const char* str, size_t slen)
             }
             else if((line[0] == '[') && (line[llen - 1] == ']'))
             {
+                if((llen - 2) > TINI_MAX_SECTION)
+                {
+                    fprintf(stderr, "error: section string too long");
+                    return false;
+                }
                 memset(t->section, 0, TINI_MAX_SECTION);
                 memcpy(t->section, line + 1, llen - 2);
                 t->slength = llen - 2;
-                #if 0
-                fprintf(stderr, "t.section=%.*s\n", t->slength, t->section);
-                #endif
             }
             else
             {
                 if((pos = spos(line, llen, '=')) != -1)
                 {
+                    if(pos > TINI_MAX_KEY)
+                    {
+                        fprintf(stderr, "error: key string too long\n");
+                        return false;
+                    }
                     nul_key(t);
-                    nul_value(t);
                     memcpy(t->key, line, pos);
                     t->klength = trimspaces(t->key, t->key, pos);
+                    if(((llen - pos) - 1) > TINI_MAX_VALUE)
+                    {
+                        fprintf(stderr, "error: value string too long");
+                        return false;
+                    }
+                    nul_value(t);
                     memcpy(t->value, line + (pos + 1), (llen - pos) - 1);
                     t->vlength = trimspaces(t->value, t->value, (llen - pos) + 1);
-                    #if 0
-                    fprintf(stderr, "in \"%.*s\": key=\"%.*s\" value=\"%.*s\"\n",
-                        t->slength, t->section,
-                        t->klength, t->key,
-                        t->vlength, t->value
-                    );
-                    #endif
                     return true;
                 }
                 else
@@ -225,6 +267,24 @@ bool tiniparser_each(tiniparser_t* t, const char* str, size_t slen)
         {
             break;
         }
+    }
+    return false;
+}
+
+bool tiniparser_is_section(tiniparser_t* t, const char* str)
+{
+    if(t->slength > 0)
+    {
+        return casecmp_s(t->section, t->slength, str, strlen(str));
+    }
+    return false;
+}
+
+bool tiniparser_is_key(tiniparser_t* t, const char* str)
+{
+    if(t->klength > 0)
+    {
+        return casecmp_s(t->key, t->klength, str, strlen(str));
     }
     return false;
 }
